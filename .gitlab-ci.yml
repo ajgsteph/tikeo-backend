@@ -1,0 +1,26 @@
+image: python:3.11
+
+stages:
+  - build
+  - test
+
+include:
+  - component: gitlab.com/components/sast/sast@main
+
+.install_dependencies: &install_dependencies
+  - pip install -r requirements.txt
+
+build:
+  stage: build
+  script:
+    - echo "Building the project..."
+    - *install_dependencies
+    - python3 app/check_site_availability.py
+
+test:
+  stage: test
+  script:
+    - echo "Running tests..."
+    - *install_dependencies
+    - pytest
+    

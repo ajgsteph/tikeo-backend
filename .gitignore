@@ -1,0 +1,12 @@
+/src/generated/prisma
+
+.env.dev
+.env.local
+/key
+.pytest_cache/
+tests/__pycache__/
+app/__pycache__/
+venv/
+.env
+key/
+node_modules/
