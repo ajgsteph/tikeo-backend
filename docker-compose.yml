@@ -1,0 +1,55 @@
+name: tikeo
+
+services:
+  app-dev:
+    profiles: [development]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: tikeo-dev
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: development
+      DOCKER_ENV: "true"
+      DATABASE_URL: ${DATABASE_URL}
+      ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}"
+      BUCKET_NAME: ${BUCKET_NAME} #GCS bucket name
+      PROJECT_ID: ${PROJECT_ID} #GCS project ID
+      KEYFILENAME: ${KEYFILENAME} # Path to the service account key file
+    env_file:
+      - .env # DATABASE_URL comes from here
+    volumes:
+      - ./src:/app/src # live reload
+      - ./key/utility-glider-474108-m3-32c5408de04a.json:/app/key/utility-glider-474108-m3-32c5408de04a.json:ro # mount key file
+    restart: unless-stopped
+    networks:
+      - tikeo-network
+
+  app-prod:
+    profiles: [production]
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: tikeo-prod
+    ports:
+      - "${APP_PORT:-3001}:3000" # different port to avoid conflict
+    environment:
+      NODE_ENV: production
+      DOCKER_ENV: "true"
+      DATABASE_URL: ${DATABASE_URL}
+      ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-http://localhost:3000,https://www.tikeo.pro/}"
+      BUCKET_NAME: ${BUCKET_NAME} #GCS bucket name
+      PROJECT_ID: ${PROJECT_ID} #GCS project ID
+      KEYFILENAME: ${KEYFILENAME} # Path to the service account key file
+    env_file:
+      - .env # DATABASE_URL comes from here
+    restart: unless-stopped
+    networks:
+      - tikeo-network
+networks:
+  tikeo-network:
+    name: tikeo-network
+    driver: bridge

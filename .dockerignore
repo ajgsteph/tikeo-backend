@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.dev
+.env.local
+key/
+src/generated/prisma
+dist/
+
+# Python test files - not part of the app
+**/*.py
+**/__pycache__/
+venv/
+.pytest_cache/

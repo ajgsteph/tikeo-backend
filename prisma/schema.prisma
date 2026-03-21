@@ -70,7 +70,8 @@ model Schedule {
   updatedAt DateTime @updatedAt
   isBooked  Boolean  @default(false)
   service   Service  @relation(fields: [serviceId], references: [id])
-
+ bookings   Booking[] 
+ 
   @@unique([serviceId, startTime, endTime])
 }
 
@@ -87,4 +88,17 @@ model Service {
   customers   Customer[]
   provider    Provider        @relation(fields: [providerId], references: [id])
   options     ServiceOption[] @relation("ServiceOptions")
+  bookings   Booking[]
+}
+
+model Booking {
+  id         String   @id @default(uuid())
+  serviceId  String
+  scheduleId String
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  service    Service  @relation(fields: [serviceId], references: [id])
+  schedule   Schedule @relation(fields: [scheduleId], references: [id])
 }
