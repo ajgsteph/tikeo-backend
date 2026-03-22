@@ -10,7 +10,7 @@ if (!KEYFILE_PATH || !projectId || !bucketName) {
 }
 
 const storage = new Storage({
-  KEYFILE_PATH: KEYFILE_PATH,
+  keyFilename: KEYFILE_PATH,
   projectId: projectId,
 });
 

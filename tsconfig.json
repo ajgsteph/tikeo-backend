@@ -16,6 +16,7 @@
   "exclude": [
     "node_modules",
     "dist",
+    "src/__tests__",
     "prisma.config.ts",
     "test-gcp-connection.ts",
     "test-logger.ts"
