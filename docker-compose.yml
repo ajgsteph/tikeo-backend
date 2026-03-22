@@ -17,12 +17,12 @@ services:
       ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}"
       BUCKET_NAME: ${BUCKET_NAME} #GCS bucket name
       PROJECT_ID: ${PROJECT_ID} #GCS project ID
-      KEYFILENAME: ${KEYFILENAME} # Path to the service account key file
+      KEYFILE_PATH: ${KEYFILE_PATH} # Path to the service account key file
     env_file:
       - .env # DATABASE_URL comes from here
     volumes:
       - ./src:/app/src # live reload
-      - ./key/utility-glider-474108-m3-32c5408de04a.json:/app/key/utility-glider-474108-m3-32c5408de04a.json:ro # mount key file
+      - ./key/${KEYFILENAME}:/app/key/${KEYFILENAME}:ro # mount key file
     restart: unless-stopped
     networks:
       - tikeo-network
@@ -43,9 +43,12 @@ services:
       ALLOWED_ORIGINS: "${ALLOWED_ORIGINS:-http://localhost:3000,https://www.tikeo.pro/}"
       BUCKET_NAME: ${BUCKET_NAME} #GCS bucket name
       PROJECT_ID: ${PROJECT_ID} #GCS project ID
-      KEYFILENAME: ${KEYFILENAME} # Path to the service account key file
+      KEYFILE_PATH: ${KEYFILE_PATH} # Path to the service account key file
     env_file:
       - .env # DATABASE_URL comes from here
+    volumes:
+      - ./src:/app/src # live reload
+      - ./key/${KEYFILENAME}:/app/key/${KEYFILENAME}:ro # mount key file
     restart: unless-stopped
     networks:
       - tikeo-network

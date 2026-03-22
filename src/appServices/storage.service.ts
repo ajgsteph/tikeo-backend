@@ -1,16 +1,16 @@
 import { Storage } from '@google-cloud/storage';
 import { logger } from '../shared/logger/logger.service';
 
-const keyFileName = process.env.KEYFILENAME;
+const KEYFILE_PATH = process.env.KEYFILE_PATH;
 const projectId = process.env.PROJECT_ID;
 const bucketName = process.env.BUCKET_NAME;
 
-if (!keyFileName || !projectId || !bucketName) {
+if (!KEYFILE_PATH || !projectId || !bucketName) {
   throw new Error('Erreur de stockage du fichier sur google le env est imcomplet ');
 }
 
 const storage = new Storage({
-  keyFilename: keyFileName,
+  KEYFILE_PATH: KEYFILE_PATH,
   projectId: projectId,
 });
 

@@ -7,7 +7,7 @@ async function testGCPConnection() {
   try {
     const logging = new Logging({
       projectId: process.env.PROJECT_ID,
-      keyFilename: process.env.KEYFILENAME,
+      KEYFILE_PATH: process.env.KEYFILE_PATH,
     });
 
     // Liste les logs existants
@@ -29,7 +29,7 @@ async function testGCPConnection() {
 
     if (error.code === 'ENOENT') {
       console.error("\n⚠️  Le fichier de credentials n'existe pas");
-      console.error(`Chemin: ${process.env.KEYFILENAME}`);
+      console.error(`Chemin: ${process.env.KEYFILE_PATH}`);
     } else if (error.code === 7) {
       console.error('\n⚠️  Permissions insuffisantes ou projet invalide');
       console.error('Vérifie que le service account a le rôle "Logs Writer"');
