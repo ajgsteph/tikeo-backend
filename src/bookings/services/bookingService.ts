@@ -1,4 +1,5 @@
 import prisma from '../../config/prisma/client';
+import { BookingStatus } from '@prisma/client';
 
 class BookingService {
   async createBooking(
@@ -86,7 +87,7 @@ class BookingService {
     return booking;
   }
 
-  async updateBookingStatus(id: string, serviceId: string, status: string) {
+  async updateBookingStatus(id: string, serviceId: string, status: BookingStatus) {
     const booking = await prisma.booking.findUnique({ where: { id } });
 
     if (!booking || booking.serviceId !== serviceId) {

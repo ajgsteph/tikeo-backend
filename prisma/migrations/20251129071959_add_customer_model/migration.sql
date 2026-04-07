@@ -1,18 +1,3 @@
-/*
-  Warnings:
-
-  - You are about to drop the `Booking` table. If the table is not empty, all the data it contains will be lost.
-
-*/
--- DropForeignKey
-ALTER TABLE "Booking" DROP CONSTRAINT "Booking_scheduleId_fkey";
-
--- DropForeignKey
-ALTER TABLE "Booking" DROP CONSTRAINT "Booking_serviceId_fkey";
-
--- DropTable
-DROP TABLE "Booking";
-
 -- CreateTable
 CREATE TABLE "Customer" (
     "id" TEXT NOT NULL,
@@ -26,7 +11,7 @@ CREATE TABLE "Customer" (
     CONSTRAINT "Customer_pkey" PRIMARY KEY ("id")
 );
 
--- CreateIndex
+-- CreateIndex 
 CREATE INDEX "Customer_providerId_idx" ON "Customer"("ServiceId");
 
 -- AddForeignKey
