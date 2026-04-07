@@ -47,7 +47,6 @@ model Customer {
   updatedAt   DateTime @updatedAt
   service     Service  @relation(fields: [serviceId], references: [id])
   bookings    Booking[]
-
   @@index([serviceId])
 }
 
@@ -71,7 +70,6 @@ model Schedule {
   isBooked  Boolean  @default(false)
   service   Service  @relation(fields: [serviceId], references: [id])
   booking  Booking?
- 
   @@unique([serviceId, startTime, endTime])
 }
 
