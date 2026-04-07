@@ -19,11 +19,13 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^8.5.0",
     "@google-cloud/logging": "^11.2.1",
     "@google-cloud/storage": "^7.17.1",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "@prisma/extension-accelerate": "^3.0.1",
+    "@scalar/express-api-reference": "^0.9.6",
     "@types/multer": "^2.0.0",
     "@types/passport": "^1.0.17",
     "bcrypt": "^6.0.0",

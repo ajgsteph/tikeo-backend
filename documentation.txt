@@ -1,0 +1,221 @@
+ARCHITECTURE
+
+**Stack technologique:**
+-Runtime**: Node.js 20
+-Framework**: Express 5.1
+-Langage**: TypeScript 5.8
+-Base de données**: PostgreSQL (Prisma ORM)
+-Auth**: JWT (access + refresh tokens) + Passport
+-Stockage**: Google Cloud Storage (GCS)
+-Logging**: Abstrait (Console dev / GCP prod)
+-Validation**: Zod
+-Tests**: Jest + Supertest
+
+**Structure modulaire** (domaine-driven):
+```
+src/
+├── auth/          → Authentification (login, register, refresh)
+├── providers/     → Gestion des fournisseurs de services
+├── services/      → Gestion des services, horaires, clients
+├── bookings/      → Réservations (CRUD complet)
+├── user/          → Gestion des utilisateurs
+├── currency/      → Devises supportées
+├── config/        → Passport, Prisma config
+├── middlewares/   → Auth, upload (multer)
+├── shared/        → Logger, utilities
+└── utils/         → Constantes, schémas
+```
+
+---
+
+MODÈLE DE DONNÉES (Prisma)
+
+**Modèles créés** (14 migrations cumulatives):
+
+| Modèle | Champs clés | Relations |
+|--------|-----------|-----------|
+|User** | id, email (UNIQUE), password, role, phone | 1:1 Provider |
+|Provider** | id, userId (UNIQUE), businessName, linkCode, website, currency, active, photoUrl | 1:1 User, 1:1 Service |
+|Service** | id, providerId (UNIQUE), name, price, duration | 1:many Schedule, 1:many Customer, 1:many Option |
+|Schedule** | id, serviceId, startTime, endTime, isBooked (default false) | many:1 Service, 1:many Booking |
+|Booking** | id, serviceId, scheduleId, customerId, status (PENDING) | many:1 Service, many:1 Schedule, many:1 Customer |
+|Customer** | id, firstname, lastname, phoneNumber, serviceId | many:1 Service, 1:many Booking |
+|ServiceOption** | id, name, price, serviceId | many:1 Service |
+
+**Notes**: Migration 20251129 a remplacé la première version de Booking par Customer (changement de modèle métier).
+
+---
+
+FONCTIONNALITÉS IMPLÉMENTÉES
+
+1. Authentification & Utilisateurs**
+- Inscription avec rôles (PROVIDER, CLIENT)
+- Connexion avec JWT access token (1h) + refresh token (7d, HttpOnly cookie)
+- Middleware Passport JWT  
+- Récupération profil utilisateur (`GET /api/user/me`)
+
+**Code clé** [src/auth/controllers/auth.controller.ts](src/auth/controllers/auth.controller.ts#L1):
+```typescript
+// Hachage bcrypt (10 rounds), tokens JWT signés
+const hashPassword = await bcrypt.hash(password, 10);
+const accessToken = generateAccessToken(user.id); // 1h
+```
+
+2. Gestion des Fournisseurs**
+- Création de fournisseur avec `businessName`, `linkCode`, adresse, site web
+- Récupération profil fournisseur (`GET /api/providers/me`)
+- Mise à jour profil (`PUT /api/providers/me`)
+- Upload photo profil vers GCS (middleware multer)
+- Support devise (paramètre créable, défaut XOF)
+
+**Endpoints**:
+```
+POST   /api/providers              → Créer fournisseur
+GET    /api/providers/me           → Obtenir profil
+PUT    /api/providers/me           → Mettre à jour profil
+POST   /api/providers/uploadFile   → Upload photo (GCS)
+```
+
+3. Gestion des Services & Horaires**
+- Création service avec options (name, price) et horaires (startTime, endTime)
+- Récupération service
+
+ du fournisseur
+- Mise à jour service (avec options et horaires)
+- Création/suppression horaires (scheduler)
+- Validation: prix > 0, durée positive, horaires uniques par service
+
+**Validation Zod** [src/services/dto/createService.dto.ts](src/services/dto/createService.dto.ts#L1):
+```typescript
+const CreateServiceSchema = z.object({
+  name: z.string().min(3).max(100),
+  price: decimalSchema.refine(val => val.greaterThan(0)),
+  duration: z.number().int().positive(),
+  schedulers: z.array(schedulerSchema)
+});
+```
+
+**Endpoints**:
+```
+POST   /api/providers/service                            → Créer service
+GET    /api/providers/service                            → Récupérer service
+POST   /api/providers/service/:serviceId/scheduler       → Ajouter horaires
+PUT    /api/providers/service/:serviceId/scheduler       → Modifier horaires
+DELETE /api/providers/scheduler/:scheduleId              → Supprimer horaire
+```
+
+4. Gestion des Clients**
+- Création client (firstname, lastname, phoneNumber associé à service)
+- Récupération par ID avec contrôle d'accès (même service)
+- Pagination: 10 clients/page par défaut
+- Mise à jour / suppression client
+
+**Endpoints**:
+```
+POST   /api/providers/customer                → Créer
+GET    /api/providers/customer/:id            → Récupérer par ID
+GET    /api/providers/customers?page=1        → Liste paginée (10/page)
+PUT    /api/providers/customer/:id            → Mettre à jour
+DELETE /api/providers/customer/:id            → Supprimer
+```
+
+5. Réservations (Booking)**
+- Endpoint public pour les clients : création de réservation sans authentification
+- Le client fournit scheduleId + ses coordonnées (firstname, lastname, phoneNumber)
+- Transaction Prisma atomique : vérification disponibilité horaire → création/récupération client → création booking → marquage `schedule.isBooked = true`
+- Gestion complète côté fournisseur (JWT + rôle PROVIDER) : liste paginée, détail, mise à jour statut, suppression
+- Statuts supportés : PENDING (défaut), CONFIRMED, CANCELLED
+- Annulation ou suppression remet `schedule.isBooked = false` (libère le créneau)
+
+**Endpoints publics (sans auth)**:
+```
+POST   /api/bookings/service/:serviceId    → Créer réservation (client)
+```
+
+**Endpoints fournisseur (JWT + isAProvider)**:
+```
+GET    /api/providers/bookings             → Liste paginée des réservations
+GET    /api/providers/bookings/:id         → Détail réservation
+PUT    /api/providers/bookings/:id         → Mettre à jour statut (CONFIRMED/CANCELLED)
+DELETE /api/providers/bookings/:id         → Supprimer réservation
+```
+
+**Validation Zod** [src/bookings/dto/createBooking.dto.ts](src/bookings/dto/createBooking.dto.ts#L1):
+```typescript
+const CreateBookingSchema = z.object({
+  scheduleId: z.string().uuid(),
+  firstname: z.string().min(3).max(100),
+  lastname: z.string().min(3).max(100),
+  phoneNumber: z.string().min(8).max(100),
+});
+```
+
+6. Stockage Cloud (GCS)**
+- Upload fichiers vers Google Cloud Storage
+- Hachage nom fichier avec timestamp
+- Vérification existence + suppression avant réupload
+- URLs publiques générées
+
+[src/appServices/storage.service.ts](src/appServices/storage.service.ts#L19-L53):
+```typescript
+export const uploadToGCS = async (fileBuffer, filename, mimetype) => {
+  const newFilename = `${Date.now()}-${filename}`;
+  const blob = bucket.file(newFilename);
+  await blob.save(fileBuffer, { contentType: mimetype });
+  return `https://storage.googleapis.com/${bucketName}/${newFilename}`;
+};
+```
+
+7. Logging Abstrait**
+- Implémentation dual: Console (dev) / GCP Logging (prod)
+- Singleton pattern pour LoggerService
+- Sélection auto basée sur NODE_ENV
+
+8. Devises**
+- Support extensible (actuellement XOF)
+- Endpoint simple `GET /api/currencies`
+
+---
+
+CE QUI RESTE À FAIRE
+
+1. Validation & Sécurité**
+- Upload fichier: pas de limite de taille (MAX_FILE_SIZE)
+- Upload fichier: pas de validation MIME type (whitelist images uniquement)
+- Pas de rate limiting (login brute force)
+- Contrôle d'accès: certains endpoints ne vérifient pas ownership
+- SQL injection: Prisma en protège mais pas d'ORM soft-deletes
+
+**À ajouter**:
+```typescript
+// Middleware upload
+const upload = multer({
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
+    cb(null, ALLOWED.includes(file.mimetype));
+  }
+});
+```
+
+3. Intégrations Externes
+- Notifications (email/SMS booking confirmations)
+- Paiement (intégration Stripe/Paytech)
+- Analytics/Monitoring (sauf GCP logging)
+- Cron jobs (rappels réservations, nettoyage horaires expirés)
+
+5. Fonctionnalités Métier 
+- Disponibilité horaires (vue client des slots libres)
+- Annulation/Modification réservations côté client
+- Feedback/Reviews après service
+- Gestion des heures de fermeture
+- Services récurrents (horaires mensuels auto-générés)
+- Commission/Paiements fournisseur
+
+6. Frontend/Intégration**
+- CORS actuellement limité à `localhost:3000` + `tikeo.pro`
+- Pas de versioning API (`/v1/`)
+- Pas de documentation Scribe/Scalar
+
+
+

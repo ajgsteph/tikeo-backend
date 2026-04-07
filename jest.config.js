@@ -7,5 +7,9 @@ module.exports = {
   testEnvironment: "node",
   transform: {
     ...tsJestTransformCfg,
+    "node_modules/@scalar/.+\\.js$": ["ts-jest", { useESM: false }],
   },
+  transformIgnorePatterns: [
+    "node_modules/(?!(@scalar)/)",
+  ],
 };

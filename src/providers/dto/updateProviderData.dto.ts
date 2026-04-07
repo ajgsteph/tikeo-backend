@@ -1,3 +1,4 @@
+import '../../config/openapi/zod-extend';
 import { z } from 'zod';
 
 const UpdateProviderDataSchema = z
@@ -16,6 +17,13 @@ const UpdateProviderDataSchema = z
       .optional(),
     website: z.string().min(3).max(100, 'Website must be less than 100 characters').optional(),
   })
-  .strict();
+  .strict()
+  .openapi('UpdateProviderData', {
+    description: 'Données de mise à jour du profil fournisseur (tous les champs sont optionnels)',
+    example: {
+      businessName: 'Salon Beauté Premium',
+      address: '15 Rue de Lomé, Lomé',
+    },
+  });
 
 export { UpdateProviderDataSchema };

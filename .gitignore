@@ -6,6 +6,8 @@ key/
 src/generated/prisma
 dist/
 uploads/
+coverage/
+CLAUDE.md
 
 
 # Python test files - not part of the app

@@ -9,6 +9,9 @@ import { createCustomer } from '../../services/controllers/customer/createCustom
 import { getAllCustomers, getCustomerById } from '../../services/controllers/customer/getCustomer';
 import { updateCustomer } from '../../services/controllers/customer/updateCustomer';
 import deleteCustomer from '../../services/controllers/customer/deleteCustomer';
+import { getAllBookings, getBookingById } from '../../bookings/controllers/getBookings';
+import updateBookingStatus from '../../bookings/controllers/updateBookingStatus';
+import deleteBooking from '../../bookings/controllers/deleteBooking';
 
 const providersRouter = Router();
 
@@ -28,5 +31,10 @@ providersRouter.get('/customer/:id', getCustomerById);
 providersRouter.get('/customers', getAllCustomers);
 providersRouter.put('/customer/:id', updateCustomer);
 providersRouter.delete('/customer/:id', deleteCustomer);
+
+providersRouter.get('/bookings', getAllBookings);
+providersRouter.get('/bookings/:id', getBookingById);
+providersRouter.put('/bookings/:id', updateBookingStatus);
+providersRouter.delete('/bookings/:id', deleteBooking);
 
 export default providersRouter;
